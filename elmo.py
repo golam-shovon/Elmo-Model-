@@ -5,6 +5,8 @@ from tqdm import tqdm
 import re
 import time
 import pickle
+import tensorflow_hub as hub
+import tensorflow as tf
 pd.set_option('display.max_colwidth', 200)
 train = pd.read_csv("train.csv")
 test = pd.read_csv("test.csv")
@@ -37,3 +39,16 @@ def lemmatization(texts):
         s = [token.lemma_ for token in nlp(i)]
         output.append(' '.join(s))
     return output
+
+
+train['clean_tweet'] = lemmatization(train['clean_tweet'])
+test['clean_tweet'] = lemmatization(test['clean_tweet'])
+
+def elmo_vectors(x):
+  embeddings = elmo(x.tolist(), signature="default", as_dict=True)["elmo"]
+
+  with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.tables_initializer())
+    # return average of ELMo features
+    return sess.run(tf.reduce_mean(embeddings,1))
