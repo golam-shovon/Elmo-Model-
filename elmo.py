@@ -7,6 +7,11 @@ import time
 import pickle
 import tensorflow_hub as hub
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
+
+
 pd.set_option('display.max_colwidth', 200)
 train = pd.read_csv("train.csv")
 test = pd.read_csv("test.csv")
@@ -52,3 +57,20 @@ def elmo_vectors(x):
     sess.run(tf.tables_initializer())
     # return average of ELMo features
     return sess.run(tf.reduce_mean(embeddings,1))
+
+
+xtrain, xvalid, ytrain, yvalid = train_test_split(elmo_train_new,
+                                                  train['label'],
+                                                  random_state=42,
+                                                  test_size=0.2)
+
+lreg = LogisticRegression()
+lreg.fit(xtrain, ytrain)
+
+preds_valid = lreg.predict(xvalid)
+f1_score(yvalid, preds_valid)
+preds_test = lreg.predict(elmo_test_new)
+sub = pd.DataFrame({'id':test['id'], 'label':preds_test})
+
+# write predictions to a CSV file
+sub.to_csv("sub_lreg.csv", index=False)
